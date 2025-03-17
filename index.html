@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Please wait!</title>
+    <link
+      href="https://fonts.googleapis.com/css?family=Titillium+Web&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="index.css" />
+  </head>
+  <body>
+    <div class="loading">
+      <p id="loadingText">Please wait</p>
+      <span>
+        <i></i><i></i>
+      </span>
+    </div>
+
+    <script>
+      const translations = [
+        "Patience is power", "La paciencia es poder", "La patience est puissance", "Geduld ist Macht", "Patience est puissance", 
+        "La pazienza è potere", "La paciencia es poder", "Patience is power", "Patience est puissance", "Geduld ist Macht", 
+        "La paciencia es poder", "Sabar adalah kekuatan", "La paciencia es poder", "Paciencia é poder", "La paciencia es poder",
+        "धैर्य ही शक्ति है", "忍耐力は力です", "صبر طاقت ہے", "Patience est force", "忍耐力が力です", 
+        "Pasensya ay lakas", "Sabır gücü demektir", "صبرو طاقت ہے", "Sabar adalah kekuatan", "Patience est la force", 
+        "Patience är kraft", "O tempo é poder", "نصبر طاقت ہے", "耐性は力です", "التسامح هو القوة", 
+        "忍耐力是力量", "忍耐是力量", "耐心就是力量", "忍耐力是力量", "Patience is strength", "La paciencia es fortaleza",
+        "사람은 기다리는 것이 힘이다", "忍耐是一种力量", "Pazienza è forza", "忍耐は力だ", "Sabar adalah kekuatan",
+        "Мудрость - сила", "耐力是力量", "Akıl, güçtür", "忍耐力是强大", " paciencia es fuerza", 
+        "صبر طاقت ہے", "忍耐は力です", "耐性是力量", "Perseverança é poder", "忍耐強さ", "Patience is power", 
+        "Hoshin wa chikara", "耐性即力量", "Sabar adalah kekuatan", "耐性就是力量", "Sabar adalah kekuatan", 
+        "Perseverancia es poder", "Hoshin wa power", "耐性就是力量", "Patience ya nguvu", "忍耐力は力です",
+        "Pazienza è potere", "忍耐力就是力量", "Patience is power", "耐性力是力量", "忍耐力是力量", 
+        "耐力就是力量", "耐性是力量", "Patience is strength", "Sabar adalah kekuatan", "Perseverance is power", 
+        "耐心即力量", "忍耐就是力量", "耐力就是力量", "耐力是力量", "Patience est puissante", "耐力就是力量", 
+        "耐心是力量", "耐心即是力量", "耐心是力量", "耐力即是力量", "耐力即是力量", "耐性就是力量"
+      ];
+
+      let currentIndex = 0;
+
+      // Function to change the text every 5 seconds
+      setInterval(function () {
+        document.getElementById("loadingText").textContent = translations[currentIndex];
+        currentIndex = (currentIndex + 1) % translations.length; // Loop back to start when reaching end
+      }, 5000);  // Change text every 5 seconds
+    </script>
+  </body>
+</html>
