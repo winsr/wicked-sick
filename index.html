@@ -38,13 +38,22 @@
         "耐心是力量", "耐心即是力量", "耐心是力量", "耐力即是力量", "耐力即是力量", "耐性就是力量"
       ];
 
+      const backgroundColors = [
+        '#387f75', '#7bbcb6', '#98e4d9', '#a8bdbf', '#aaaaaa', '#270f36' , '#632b6c', '#c76b98', '#f09f9c', '#fcc3a3'
+      ];
+
       let currentIndex = 0;
 
-      // Function to change the text every 5 seconds
+      // Function to change the text and background color every 5 seconds
       setInterval(function () {
+        // Change the text content
         document.getElementById("loadingText").textContent = translations[currentIndex];
         currentIndex = (currentIndex + 1) % translations.length; // Loop back to start when reaching end
-      }, 5000);  // Change text every 5 seconds
+
+        // Change the background color randomly
+        const randomColor = backgroundColors[Math.floor(Math.random() * backgroundColors.length)];
+        document.body.style.backgroundColor = randomColor;
+      }, 5000);  // Change text and background color every 5 seconds
     </script>
   </body>
 </html>
