@@ -2,18 +2,58 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Base64 TLV → JSON ASCII</title>
+  <title>🐱 Sahabat Kojo Di Wowo</title>
+  <link rel="icon" type="image/png" href="https://img.favpng.com/10/23/10/china-chinese-cuisine-smiley-emoticon-clip-art-png-favpng-hCAPNzc0tvqP7xgLiFQXJQMvd.jpg" sizes="16x16" />
   <style>
-    body { font-family: monospace; max-width: 800px; margin: 20px auto; padding: 20px; }
-    textarea { width: 100%; height: 100px; font-family: monospace; margin-bottom: 10px; }
-    button { padding: 10px 16px; font-size: 16px; }
-    pre { background: #f4f4f4; padding: 10px; border: 1px solid #ccc; white-space: pre-wrap; }
+    body {
+      font-family: monospace;
+      max-width: 800px;
+      margin: 20px auto;
+      padding: 20px;
+    }
+    textarea {
+      width: 100%;
+      height: 100px;
+      font-family: monospace;
+      margin-bottom: 10px;
+    }
+    button {
+      padding: 10px 16px;
+      font-size: 16px;
+      cursor: pointer;
+    }
+    pre {
+      background: #f4f4f4;
+      padding: 10px;
+      border: 1px solid #ccc;
+      white-space: pre-wrap;
+    }
+    .center {
+      text-align: center;
+    }
+    #greeting {
+      font-size: 20px;
+      margin-top: 20px;
+      font-weight: bold;
+      text-shadow: 0 0 5px rgba(255,255,255,0.8), 0 0 10px rgba(255,255,255,0.5);
+    }
+    #description {
+      font-size: 16px;
+      margin-bottom: 10px;
+    }
   </style>
 </head>
 <body>
-  <h2>Base64 → TLV → JSON ASCII</h2>
+  <div class="center">
+    <img src="https://media.tenor.com/NzrqQHFBVz8AAAAj/kitty-transparent.gif" alt="Kitty GIF" style="height: 80px;">
+  </div>
+
   <textarea id="base64Input" placeholder="Paste Base64 here..."></textarea>
   <button onclick="decodeTLV()">Decode</button>
+
+  <div id="greeting" class="center"></div>
+  <div id="description" class="center"></div>
+
   <pre id="output"></pre>
 
   <script>
@@ -28,17 +68,44 @@
       } catch (e) {
         document.getElementById("output").textContent = "❌ Invalid Base64 input";
       }
+
+      fetch("https://random-animal-api.vercel.app/api/random-animal")
+        .then(res => res.json())
+        .then(data => {
+          const name = data.city || "Sahabat Kojo Di Wowo";
+          document.getElementById("greeting").innerHTML = `Hi, <span class="rainbow">${rainbowify(name)}</span>`;
+          document.getElementById("description").textContent = "This is your parsed TLV string:";
+        })
+        .catch(() => {
+          const fallback = "Sahabat Kojo Di Wowo";
+          document.getElementById("greeting").innerHTML = `Hi, <span class="rainbow">${rainbowify(fallback)}</span>`;
+          document.getElementById("description").textContent = "This is your parsed TLV string:";
+        });
+    }
+
+    function rainbowify(text) {
+      const baseColors = ['red', 'orange', 'gold', 'green', 'blue', 'indigo', 'violet'];
+      return text.split('').map((char, i) => {
+        const color = i < baseColors.length ? baseColors[i] : getRandomColor();
+        return `<span style="color: ${color}; font-weight: bold; text-shadow: 0 0 5px rgba(255,255,255,0.8), 0 0 10px rgba(255,255,255,0.5);">${char}</span>`;
+      }).join('');
+    }
+
+    function getRandomColor() {
+      const letters = '0123456789ABCDEF';
+      let color = '#';
+      for (let j = 0; j < 6; j++) {
+        color += letters[Math.floor(Math.random() * 16)];
+      }
+      return color;
     }
 
     function parseTLV(hex) {
       let i = 0;
       const result = {};
-
       const keepAsHexTags = ['4F', '9F25'];
-      const asciiTags = ['50', '5F20', '5F2D', '5F50', '85'];
 
       while (i < hex.length) {
-        // Tag
         let tag = hex.substr(i, 2);
         i += 2;
         if ((parseInt(tag, 16) & 0x1F) === 0x1F) {
@@ -50,7 +117,6 @@
           i += 2;
         }
 
-        // Length
         let lenByte = parseInt(hex.substr(i, 2), 16);
         i += 2;
         let length = lenByte;
@@ -63,11 +129,9 @@
         const valueHex = hex.substr(i, length * 2);
         i += length * 2;
 
-        // Recursive parse for tags 61 and 63
         if (tag === '61' || tag === '63') {
           result[tag] = parseTLV(valueHex);
         } else if (tag === '5A') {
-          // Decode PAN from BCD
           const digits = valueHex.match(/.{2}/g)
             .map(byte => {
               const high = (parseInt(byte, 16) >> 4) & 0xF;
