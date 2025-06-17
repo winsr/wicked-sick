@@ -1,1 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Base64 to Hex & TLV Decoder</title>
+  <style>
+    body { font-family: Arial, sans-serif; padding: 20px; }
+    textarea { width: 100%; height: 80px; }
+    button { margin: 10px 0; padding: 8px 16px; }
+    pre { background: #f4f4f4; padding: 10px; border: 1px solid #ccc; }
+  </style>
+</head>
+<body>
+  <h2>🔁 Base64 to Hex Converter</h2>
+  <textarea id="base64Input" placeholder="Paste Base64 here..."></textarea>
+  <button onclick="convertBase64ToHex()">Convert to Hex</button>
+  <pre id="hexOutput"></pre>
 
+  <h2>📦 TLV Decoder (from Hex)</h2>
+  <textarea id="hexInput" placeholder="Paste Hex here..."></textarea>
+  <button onclick="decodeTLV()">Decode TLV</button>
+  <pre id="tlvOutput"></pre>
+
+  <script>
+    function convertBase64ToHex() {
+      const base64 = document.getElementById('base64Input').value.trim();
+      try {
+        const binary = atob(base64);
+        let hex = '';
+        for (let i = 0; i < binary.length; i++) {
+          hex += ('0' + binary.charCodeAt(i).toString(16)).slice(-2).toUpperCase();
+        }
+        document.getElementById('hexOutput').textContent = hex;
+        document.getElementById('hexInput').value = hex; // Autofill for TLV decoder
+      } catch (e) {
+        document.getElementById('hexOutput').textContent = 'Invalid Base64 input!';
+      }
+    }
+
+    function decodeTLV() {
+      const hex = document.getElementById('hexInput').value.replace(/\s+/g, '');
+      let i = 0;
+      const result = [];
+
+      while (i < hex.length) {
+        // Parse Tag (1 or more bytes)
+        let tag = hex.substr(i, 2);
+        i += 2;
+        if ((parseInt(tag, 16) & 0x1F) === 0x1F) {
+          // Multi-byte tag
+          while (i < hex.length && (parseInt(hex.substr(i, 2), 16) & 0x80)) {
+            tag += hex.substr(i, 2);
+            i += 2;
+          }
+          tag += hex.substr(i, 2);
+          i += 2;
+        }
+
+        // Parse Length
+        let lenByte = parseInt(hex.substr(i, 2), 16);
+        i += 2;
+        let length = 0;
+
+        if (lenByte & 0x80) {
+          const numOfLenBytes = lenByte & 0x7F;
+          const lenHex = hex.substr(i, numOfLenBytes * 2);
+          length = parseInt(lenHex, 16);
+          i += numOfLenBytes * 2;
+        } else {
+          length = lenByte;
+        }
+
+        // Parse Value
+        const value = hex.substr(i, length * 2);
+        i += length * 2;
+
+        result.push(`Tag: ${tag} | Length: ${length} | Value: ${value}`);
+      }
+
+      document.getElementById('tlvOutput').textContent = result.join('\n');
+    }
+  </script>
+</body>
+</html>
