@@ -1,111 +1,102 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>Base64 to Hex & TLV Decoder</title>
+  <meta charset="UTF-8" />
+  <title>Base64 TLV → JSON ASCII</title>
   <style>
-    body { font-family: Arial, sans-serif; padding: 20px; max-width: 800px; margin: auto; }
-    h2 { margin-top: 30px; }
-    textarea { width: 100%; height: 100px; margin-bottom: 10px; }
-    button { margin: 10px 0; padding: 10px 16px; font-size: 16px; cursor: pointer; }
+    body { font-family: monospace; max-width: 800px; margin: 20px auto; padding: 20px; }
+    textarea { width: 100%; height: 100px; font-family: monospace; margin-bottom: 10px; }
+    button { padding: 10px 16px; font-size: 16px; }
     pre { background: #f4f4f4; padding: 10px; border: 1px solid #ccc; white-space: pre-wrap; }
   </style>
 </head>
 <body>
-  <h1>🛠️ Base64 to Hex & TLV Decoder</h1>
-
-  <h2>Step 1: Base64 to Hex</h2>
-  <textarea id="base64Input" placeholder="Paste Base64 input here..."></textarea>
-  <button onclick="convertBase64ToHex()">Convert to Hex</button>
-  <pre id="hexOutput"></pre>
-
-  <h2>Step 2: TLV Decoder (from Hex)</h2>
-  <textarea id="hexInput" placeholder="Paste Hex input here or use result from above..."></textarea>
-  <button onclick="decodeTLV()">Decode TLV</button>
-  <pre id="tlvOutput"></pre>
+  <h2>Base64 → TLV → JSON ASCII</h2>
+  <textarea id="base64Input" placeholder="Paste Base64 here..."></textarea>
+  <button onclick="decodeTLV()">Decode</button>
+  <pre id="output"></pre>
 
   <script>
-    function convertBase64ToHex() {
-      const base64 = document.getElementById('base64Input').value.trim();
-      try {
-        const binary = atob(base64);
-        let hex = '';
-        for (let i = 0; i < binary.length; i++) {
-          hex += ('0' + binary.charCodeAt(i).toString(16)).slice(-2).toUpperCase();
-        }
-        document.getElementById('hexOutput').textContent = hex;
-        document.getElementById('hexInput').value = hex; // Autofill for TLV decoder
-      } catch (e) {
-        document.getElementById('hexOutput').textContent = '❌ Invalid Base64 input!';
-      }
-    }
-
     function decodeTLV() {
-      const hex = document.getElementById('hexInput').value.replace(/\s+/g, '').toUpperCase();
-      if (!hex || hex.length % 2 !== 0) {
-        document.getElementById('tlvOutput').textContent = '❌ Invalid Hex input!';
-        return;
-      }
+      const base64 = document.getElementById("base64Input").value.trim();
       try {
-        const result = parseTLV(hex);
-        document.getElementById('tlvOutput').textContent = result.join('\n');
-      } catch (err) {
-        document.getElementById('tlvOutput').textContent = '❌ Error decoding TLV: ' + err.message;
+        const hex = atob(base64).split('').map(c =>
+          ('0' + c.charCodeAt(0).toString(16)).slice(-2)
+        ).join('').toUpperCase();
+        const parsed = parseTLV(hex);
+        document.getElementById("output").textContent = format(parsed);
+      } catch (e) {
+        document.getElementById("output").textContent = "❌ Invalid Base64 input";
       }
     }
 
-    function parseTLV(hex, level = 0) {
+    function parseTLV(hex) {
       let i = 0;
-      const result = [];
-      const indent = '  '.repeat(level);
+      const result = {};
+
+      const keepAsHexTags = ['4F', '9F25', '63'];
+      const asciiTags = ['50', '5F20', '5F2D', '5F50', '85'];
 
       while (i < hex.length) {
-        if (i + 2 > hex.length) break;
-
-        // Parse Tag (1+ bytes)
+        // Tag
         let tag = hex.substr(i, 2);
         i += 2;
         if ((parseInt(tag, 16) & 0x1F) === 0x1F) {
-          while (i + 2 <= hex.length && (parseInt(hex.substr(i, 2), 16) & 0x80)) {
+          while ((parseInt(hex.substr(i, 2), 16) & 0x80) === 0x80) {
             tag += hex.substr(i, 2);
             i += 2;
           }
-          if (i + 2 <= hex.length) {
-            tag += hex.substr(i, 2);
-            i += 2;
-          }
+          tag += hex.substr(i, 2);
+          i += 2;
         }
 
-        if (i + 2 > hex.length) break;
-
-        // Parse Length
+        // Length
         let lenByte = parseInt(hex.substr(i, 2), 16);
         i += 2;
-        let length = 0;
-
-        if ((lenByte & 0x80) === 0) {
-          length = lenByte;
-        } else {
-          const lenLength = lenByte & 0x7F;
-          if (i + lenLength * 2 > hex.length) break;
-          length = parseInt(hex.substr(i, lenLength * 2), 16);
-          i += lenLength * 2;
+        let length = lenByte;
+        if ((lenByte & 0x80) !== 0) {
+          const lenLen = lenByte & 0x7F;
+          length = parseInt(hex.substr(i, lenLen * 2), 16);
+          i += lenLen * 2;
         }
 
-        // Parse Value
-        const value = hex.substr(i, length * 2);
+        const valueHex = hex.substr(i, length * 2);
         i += length * 2;
 
-        result.push(`${indent}Tag: ${tag} | Length: ${length} | Value: ${value}`);
-
-        // Recursive parse for Tag 61
         if (tag === '61') {
-          result.push(`${indent}↳ Parsing nested TLV inside Tag 61:`);
-          result.push(...parseTLV(value, level + 1));
+          result[tag] = parseTLV(valueHex);
+        } else if (tag === '5A') {
+          // Decode PAN from compressed BCD
+          const digits = valueHex.match(/.{2}/g)
+            .map(byte => {
+              const high = (parseInt(byte, 16) >> 4) & 0xF;
+              const low = parseInt(byte, 16) & 0xF;
+              return `${high}${low}`;
+            }).join('').replace(/F+$/, '').slice(0, 19);
+          result[tag] = digits;
+        } else if (keepAsHexTags.includes(tag)) {
+          result[tag] = valueHex.toUpperCase();
+        } else {
+          const ascii = valueHex.match(/.{2}/g)
+            .map(h => String.fromCharCode(parseInt(h, 16)))
+            .join('').trim();
+          result[tag] = ascii;
         }
       }
 
       return result;
+    }
+
+    function format(obj, indent = 0) {
+      const pad = '  '.repeat(indent);
+      const entries = Object.entries(obj).map(([k, v]) => {
+        if (typeof v === 'object') {
+          return `${pad}"${k}": {\n${format(v, indent + 1)}\n${pad}}`;
+        } else {
+          return `${pad}"${k}": "${v}"`;
+        }
+      });
+      return entries.join(',\n');
     }
   </script>
 </body>
